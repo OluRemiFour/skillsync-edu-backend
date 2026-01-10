@@ -9,7 +9,6 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const connectDB = require('./config/db');
 
-// Connect to Database
 connectDB();
 
 const app = express();
