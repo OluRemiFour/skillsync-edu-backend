@@ -11,6 +11,11 @@ const authMiddleware = require('./middleware/authMiddleware');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Matching Engine API is running' });
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -22,10 +27,6 @@ app.use('/api/students', studentRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Matching Engine API is running' });
-});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
