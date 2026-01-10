@@ -3,7 +3,9 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { users } = require('../data/store');
+const User = require('../models/User');
+const StudentProfile = require('../models/StudentProfile');
+const IndustryProfile = require('../models/IndustryProfile');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -14,36 +16,52 @@ if (!JWT_SECRET) {
 // signup path: /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, confirmPassword, role, companyName } = req.body;
 
-    if (users.find(u => u.email === email)) {
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = {
-      id: Date.now().toString(),
+    const user = await User.create({
       name,
       email,
-      password: hashedPassword,
-      role // 'student' or 'industry'
-    };
-
-    users.push(newUser);
-
-    const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '24h' });
-
-    res.status(201).json({
-      token,
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
-      }
+      password, // Password will be hashed by the pre-save hook in User model
+      role
     });
 
+    if (user) {
+      // Initialize profile based on role
+      if (role === 'student') {
+        await StudentProfile.create({ userId: user._id });
+      } else if (role === 'industry') {
+        await IndustryProfile.create({ 
+          userId: user._id,
+          companyName: companyName || `${name}'s Company`
+        });
+      }
+
+      const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+
+      res.status(201).json({
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid user data' });
+    }
+
   } catch (error) {
+    console.error('Signup error:', error);
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -52,30 +70,26 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = users.find(u => u.email === email);
+    const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+    if (user && (await user.matchPassword(password))) {
+      const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+
+      res.json({
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
+    } else {
+      res.status(401).json({ error: 'Invalid email or password' });
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
 
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
   }
 });

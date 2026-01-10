@@ -7,7 +7,8 @@ const matchingEngine = require('../services/matchingEngine');
  * @desc Match a student to an industry placement
  * @access Public
  */
-const { students, roles } = require('../data/store');
+const StudentProfile = require('../models/StudentProfile');
+const JobRole = require('../models/JobRole');
 
 router.post('/', async (req, res) => {
   try {
@@ -15,10 +16,10 @@ router.post('/', async (req, res) => {
 
     // Fetch from store if IDs provided
     if (studentId) {
-      student = students.find(s => s.id === studentId);
+      student = await StudentProfile.findOne({ userId: studentId });
     }
     if (roleId) {
-      requirement = roles.find(r => r.id === roleId);
+      requirement = await JobRole.findById(roleId);
     }
 
     if (!student || !requirement) {
