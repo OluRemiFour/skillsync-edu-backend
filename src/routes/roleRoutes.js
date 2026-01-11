@@ -27,6 +27,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create new role requirement
 router.post('/', authMiddleware, async (req, res) => {
   try {
+    if (req.user.role !== 'industry') {
+      return res.status(403).json({ error: 'Access denied: Only industry users can create roles' });
+    }
     const newRole = await JobRole.create(req.body);
     res.status(201).json(newRole);
   } catch (error) {

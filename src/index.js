@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const roleRoutes = require('./routes/roleRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const studentInsightsRoutes = require('./routes/studentInsightsRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const connectDB = require('./config/db');
 
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/match', authMiddleware, matchRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/students', studentInsightsRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
